@@ -1,4 +1,4 @@
-SPRINGER_URL = "http://api.springernature.com/meta/v2/json"
+SPRINGER_URL = "https://api.springernature.com/meta/v2/json"
 BOTID = "@SpringerNatureBot"
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.116 Safari/537.36 OPR/40.0.2308.81'
