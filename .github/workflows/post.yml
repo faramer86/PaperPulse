@@ -61,8 +61,18 @@ jobs:
               f'USER_CHAT_ID = {chat_id!r}\n')
           PY
 
+      # inputs.seed goes through env rather than being interpolated into the
+      # script body: expressions expanded into `run:` are the standard Actions
+      # script-injection vector, and this job holds contents:write.
       - name: Post
-        run: python SpringerNatureBot.py ${{ inputs.seed && '--seed' || '' }}
+        env:
+          SEED: ${{ inputs.seed }}
+        run: |
+          if [ "$SEED" = "true" ]; then
+            python SpringerNatureBot.py --seed
+          else
+            python SpringerNatureBot.py
+          fi
 
       - name: Commit the posted-article store
         run: |
