@@ -331,7 +331,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument('--limit', type=int, default=MAX_POSTS_PER_CHANNEL,
                         help='maximum posts per channel for this run')
     parser.add_argument('--seed', action='store_true',
-                        help='record the current window as posted, without posting')
+                        help='record the current window as posted, without posting. '
+                             'Run this once against an empty store, or the first '
+                             'real run posts a week of backlog at once')
     return parser.parse_args(argv)
 
 
