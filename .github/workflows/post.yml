@@ -61,6 +61,16 @@ jobs:
           if not (chat_id.startswith('@') or chat_id.lstrip('-').isdigit()):
               sys.exit('USER_CHAT_ID must be a numeric chat id or an @username')
 
+          # A bad credential is otherwise indistinguishable from a bad token in
+          # the logs, because GitHub masks the value. The bot id is the public
+          # half of the token, and a short digest identifies the secret half
+          # without revealing it.
+          import hashlib
+          bot_id = values['BOT_API_KEY'].split(':')[0]
+          digest = hashlib.sha256(values['BOT_API_KEY'].encode()).hexdigest()[:12]
+          print(f'bot id {bot_id}, token fingerprint {digest}, length '
+                f'{len(values["BOT_API_KEY"])}')
+
           pathlib.Path('config.py').write_text(
               ''.join(f'{name} = {value!r}\n' for name, value in values.items()))
           PY
