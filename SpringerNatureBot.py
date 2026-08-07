@@ -39,11 +39,15 @@ from store import FileSeenStore, SeenStore
 
 logger = logging.getLogger(__name__)
 
-# Journals whose channels take every article type; all others are filtered to reviews.
-UNFILTERED_JOURNALS = ('NatureGenetics', 'NatureMachineIntelligence')
+# Channels that take every article type. The rule belongs to the channel rather
+# than the journal because Nature feeds both @NatureMain, unfiltered, and
+# @NatureReviewsLife, which wants reviews only.
+UNFILTERED_CHANNELS = ('@NatureMain', '@NatureGenetics', '@NatureMachineIntelligence')
 # Springer's `articletype:` constraint is premium-only and 403s on the basic
 # plan, so the type filter runs here against the `genre` every record carries.
 REVIEW_ARTICLE_TYPES = frozenset({'Review Article', 'Perspective'})
+# Never posted anywhere: a correction notice is not an article.
+EXCLUDED_ARTICLE_TYPES = frozenset({'Author Correction'})
 # Re-querying a window rather than a single day catches articles Springer
 # indexes late. Dedup on DOI makes the overlap between runs harmless.
 LOOKBACK_WINDOW = timedelta(days=7)
@@ -61,6 +65,9 @@ RETRY_BACKOFF = 1.0
 # Per channel, per run. With runs every 3 hours this drip-feeds a busy day
 # while still clearing far more than the ~4 articles/day the feeds produce.
 MAX_POSTS_PER_CHANNEL = 3
+# Nature alone publishes ~12 articles/day, so @NatureMain would never keep up
+# on the shared default.
+CHANNEL_LIMITS = {'@NatureMain': 8}
 DEFAULT_SEEN_PATH = Path(__file__).resolve().parent / 'seen.json'
 
 
@@ -110,16 +117,37 @@ def build_query(journal_id: int, date_from: str, date_to: str) -> str:
             f'journalid:{journal_id}')
 
 
-def is_wanted(article: dict, journal_name: str) -> bool:
+def channels_for(journal_name: str) -> tuple[str, ...]:
     """
-    Action: decide whether an article belongs in its journal's channel
-    :param article: dictionary from API response with individual article data
+    Action: list the channels a journal feeds
     :param journal_name: journal name from JID dict
-    :return: True for every type on unfiltered journals, reviews only elsewhere
+    :return: channel handles, more than one where a journal is shared
     """
-    if journal_name in UNFILTERED_JOURNALS:
+    return JCHANNEL[journal_name]
+
+
+def limit_for(channel: str) -> int:
+    """
+    Action: how many articles this channel may receive in one run
+    :param channel: channel handle from JCHANNEL
+    :return: per-run cap, defaulting to MAX_POSTS_PER_CHANNEL
+    """
+    return CHANNEL_LIMITS.get(channel, MAX_POSTS_PER_CHANNEL)
+
+
+def is_wanted(article: dict, channel: str) -> bool:
+    """
+    Action: decide whether an article belongs in a given channel
+    :param article: dictionary from API response with individual article data
+    :param channel: channel handle from JCHANNEL
+    :return: True for every type on unfiltered channels, reviews only elsewhere
+    """
+    kind = article_type(article)
+    if kind in EXCLUDED_ARTICLE_TYPES:
+        return False
+    if channel in UNFILTERED_CHANNELS:
         return True
-    return article_type(article) in REVIEW_ARTICLE_TYPES
+    return kind in REVIEW_ARTICLE_TYPES
 
 
 async def notify_owner(bot: ExtBot, text: str) -> None:
@@ -246,9 +274,10 @@ async def gather_articles(client: httpx.AsyncClient,
             # each costs three more requests against a 500/day quota.
             logger.error('Stopping the sweep after %s failed', journal_name)
             break
-        for article in found:
-            if is_wanted(article, journal_name):
-                by_channel[JCHANNEL[journal_name]].append((journal_name, article))
+        for channel in channels_for(journal_name):
+            for article in found:
+                if is_wanted(article, channel):
+                    by_channel[channel].append((journal_name, article))
     for entries in by_channel.values():
         entries.sort(key=lambda entry: entry[1].get('onlineDate', ''))
     return dict(by_channel)
@@ -258,20 +287,21 @@ async def post_new_articles(bot: ExtBot,
                             store: SeenStore,
                             by_channel: dict[str, list[tuple[str, dict]]],
                             today: date,
-                            limit: int = MAX_POSTS_PER_CHANNEL) -> list[str]:
+                            limit: int | None = None) -> list[str]:
     """
     Action: post articles not seen before, at most `limit` per channel
     :param bot: Telegram bot used to send the posts
     :param store: memory of DOIs already posted
     :param by_channel: channel handle mapped to (journal name, article) pairs
     :param today: date recorded against anything posted
-    :param limit: how many articles one channel may receive in this run
+    :param limit: overrides every channel's own cap when given
     :return: DOIs that were posted (or permanently rejected) this run
     """
     settled: list[str] = []
     for channel, entries in by_channel.items():
+        cap = limit_for(channel) if limit is None else limit
         fresh = set(await store.unseen([article['doi'] for _, article in entries]))
-        queued = [entry for entry in entries if entry[1]['doi'] in fresh][:limit]
+        queued = [entry for entry in entries if entry[1]['doi'] in fresh][:cap]
         for journal_name, article in queued:
             try:
                 await bot.send_message(chat_id=channel,
@@ -296,7 +326,7 @@ async def post_new_articles(bot: ExtBot,
     return settled
 
 
-async def run(store: SeenStore, today: date, limit: int, seed: bool) -> None:
+async def run(store: SeenStore, today: date, limit: int | None, seed: bool) -> None:
     """
     Action: perform one pass over every journal
     :param store: memory of DOIs already posted
@@ -328,8 +358,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('--seen', type=Path, default=DEFAULT_SEEN_PATH,
                         help='path to the posted-DOI store')
-    parser.add_argument('--limit', type=int, default=MAX_POSTS_PER_CHANNEL,
-                        help='maximum posts per channel for this run')
+    parser.add_argument('--limit', type=int, default=None,
+                        help='override every channel\'s per-run cap for this run; '
+                             'without it each channel uses its own')
     parser.add_argument('--seed', action='store_true',
                         help='record the current window as posted, without posting. '
                              'Run this once against an empty store, or the first '

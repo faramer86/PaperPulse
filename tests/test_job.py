@@ -39,7 +39,7 @@ def record(n, genre=('ReviewPaper', 'Review Article'), online='2026-08-05'):
 
 def one_journal(monkeypatch, records):
     monkeypatch.setattr(SpringerNatureBot, 'JID', {'NatureReviewsCancer': 41568})
-    monkeypatch.setattr(SpringerNatureBot, 'JCHANNEL', {'NatureReviewsCancer': '@channel'})
+    monkeypatch.setattr(SpringerNatureBot, 'JCHANNEL', {'NatureReviewsCancer': ('@channel',)})
     return httpx.AsyncClient(transport=httpx.MockTransport(
         lambda request: httpx.Response(200, json={'records': records})))
 

@@ -13,5 +13,7 @@ def test_every_journal_has_a_channel():
 
 
 def test_every_channel_is_a_telegram_handle():
-    for journal_name, channel in JCHANNEL.items():
-        assert channel.startswith('@'), journal_name
+    for journal_name, channels in JCHANNEL.items():
+        assert channels, journal_name
+        for channel in channels:
+            assert channel.startswith('@'), journal_name

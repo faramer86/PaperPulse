@@ -41,7 +41,7 @@ def article_with(genre):
     ['ReviewPaper', 'Perspective'],
 ])
 def test_review_channels_accept_reviews_and_perspectives(genre):
-    assert is_wanted(article_with(genre), 'NatureReviewsCancer')
+    assert is_wanted(article_with(genre), '@NatureReviewsClinical')
 
 
 @pytest.mark.parametrize('genre', [
@@ -56,7 +56,7 @@ def test_review_channels_accept_reviews_and_perspectives(genre):
 ])
 def test_review_channels_reject_everything_else(genre):
     """These genres are all real values observed on Nature Reviews journals."""
-    assert not is_wanted(article_with(genre), 'NatureReviewsCancer')
+    assert not is_wanted(article_with(genre), '@NatureReviewsClinical')
 
 
 @pytest.mark.parametrize('genre', [
@@ -64,11 +64,11 @@ def test_review_channels_reject_everything_else(genre):
     ['News', 'Editorial'],
     ['ReviewPaper', 'Review Article'],
 ])
-def test_unfiltered_journals_accept_every_type(genre):
-    assert is_wanted(article_with(genre), 'NatureGenetics')
-    assert is_wanted(article_with(genre), 'NatureMachineIntelligence')
+def test_unfiltered_channels_accept_every_type(genre):
+    assert is_wanted(article_with(genre), '@NatureGenetics')
+    assert is_wanted(article_with(genre), '@NatureMachineIntelligence')
 
 
 def test_article_with_no_genre_is_rejected_from_review_channels():
-    assert not is_wanted({'genre': []}, 'NatureReviewsCancer')
-    assert not is_wanted({}, 'NatureReviewsCancer')
+    assert not is_wanted({'genre': []}, '@NatureReviewsClinical')
+    assert not is_wanted({}, '@NatureReviewsClinical')

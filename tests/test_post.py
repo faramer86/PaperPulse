@@ -151,3 +151,37 @@ def test_article_without_abstract_renders_without_a_quote_block():
     assert '<blockquote' not in post
     assert post.startswith('<b>Targeting')
     assert '<b>Link:</b>' in post
+
+
+@pytest.mark.parametrize('genre, expected', [
+    ('Review Article', '#ReviewArticle'),
+    ('Perspective', '#Perspective'),
+    # Telegram hashtags accept only letters, digits and underscore, so a bare
+    # "&" silently ends the tag: "#News&Views" becomes the tag "#News".
+    ('News & Views', '#NewsAndViews'),
+    ('News And Views', '#NewsAndViews'),
+    ('Career Q&A', '#CareerQAndA'),
+    ('Tools of the Trade', '#ToolsoftheTrade'),
+    ('Research Briefings', '#ResearchBriefings'),
+])
+def test_article_type_slugs_are_valid_hashtags(genre, expected):
+    tags = hashtags(JOURNAL, ARTICLE | {'genre': [genre]}, TODAY)
+
+    assert expected in tags
+
+
+def test_the_two_spellings_of_news_and_views_produce_one_tag():
+    """Springer returns both 'News & Views' and 'News And Views'."""
+    ampersand = hashtags(JOURNAL, ARTICLE | {'genre': ['News & Views']}, TODAY)
+    spelled = hashtags(JOURNAL, ARTICLE | {'genre': ['News And Views']}, TODAY)
+
+    assert ampersand == spelled
+
+
+def test_no_hashtag_ever_contains_a_character_telegram_would_cut():
+    for genre in ('News & Views', 'Career Q&A', 'Tools of the Trade',
+                  'Review Article', 'Editorial Expression of Concern'):
+        tags = hashtags(JOURNAL, ARTICLE | {'genre': [genre]}, TODAY)
+        for tag in tags.split():
+            assert tag.startswith('#')
+            assert tag[1:].replace('_', '').isalnum(), tag

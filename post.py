@@ -9,6 +9,7 @@ The layout is fixed by
 ``docs/superpowers/specs/2026-08-07-post-readability-design.md``.
 """
 
+import re
 from datetime import date
 from html import escape
 
@@ -62,6 +63,19 @@ def article_type(article: dict) -> str:
     return genres[-1] if genres else ''
 
 
+def type_slug(kind: str) -> str:
+    """
+    Action: turn an article type into a valid hashtag body
+    :param kind: display article type, e.g. "News & Views"
+    :return: alphanumeric slug, e.g. "NewsAndViews"
+
+    Telegram hashtags accept only letters, digits and underscore, so a bare "&"
+    silently truncates the tag: "#News & Views" would post as the tag "#News".
+    Spelling it out also folds Springer's two spellings of News & Views into one.
+    """
+    return re.sub(r'[^0-9A-Za-z]', '', kind.replace('&', 'And'))
+
+
 def hashtags(journal_name: str, article: dict, today: date) -> str:
     """
     Action: build the hashtag line that closes a post
@@ -75,7 +89,7 @@ def hashtags(journal_name: str, article: dict, today: date) -> str:
     """
     tags = [f'#{journal_name}']
     if kind := article_type(article):
-        tags.append('#' + kind.replace(' ', ''))
+        tags.append('#' + type_slug(kind))
     if article.get('openaccess') == 'true':
         tags.append('#OpenAccess')
     online = article.get('onlineDate')

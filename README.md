@@ -11,6 +11,7 @@ article. Thus, we believe, we do not violate any laws.
 
 | Channel | Covers |
 | --- | --- |
+| [@NatureMain](https://t.me/NatureMain) | Nature — all article types |
 | [@NatureGenetics](https://t.me/NatureGenetics) | Nature Genetics — all article types |
 | [@NatureMachineIntelligence](https://t.me/NatureMachineIntelligence) | Nature Machine Intelligence — all article types |
 | [@NatureReviewsLife](https://t.me/NatureReviewsLife) | Life Sciences — reviews and perspectives |
@@ -19,6 +20,9 @@ article. Thus, we believe, we do not violate any laws.
 
 **Life Sciences** — Nature, Nature Reviews Cancer, Drug Discovery, Genetics,
 Immunology, Microbiology, Molecular Cell Biology, Neuroscience.
+
+Nature feeds two channels: everything to @NatureMain, and its occasional reviews
+and perspectives to @NatureReviewsLife.
 
 **Clinical Sciences** — Nature Reviews Cardiology, Clinical Oncology, Disease
 Primers, Endocrinology, Gastroenterology & Hepatology, Nephrology, Neurology,
