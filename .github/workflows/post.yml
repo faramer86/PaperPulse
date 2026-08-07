@@ -1,0 +1,79 @@
+name: Post new articles
+
+on:
+  schedule:
+    # Every 3 hours. The Springer basic plan allows 500 requests/day and one
+    # sweep of 24 journals costs ~27, so 8 runs/day uses ~216 and leaves room
+    # for retries. Hourly would be 648/day and half-hourly 1296/day -- both
+    # over the cap. GitHub may delay scheduled runs under load; the bot is
+    # idempotent, so a late or skipped run only defers posts to the next one.
+    - cron: '0 */3 * * *'
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: 'Record the current window as posted, without posting'
+        type: boolean
+        default: false
+
+# Runs commit seen.json back to the repo, so they must not overlap.
+concurrency:
+  group: post-articles
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      # config.py is gitignored, so CI recreates it from repository secrets.
+      # Written by Python rather than the shell so no secret reaches a command line.
+      - name: Write config from secrets
+        env:
+          SPRINGER_API_KEY: ${{ secrets.SPRINGER_API_KEY }}
+          BOT_API_KEY: ${{ secrets.BOT_API_KEY }}
+          USER_CHAT_ID: ${{ secrets.USER_CHAT_ID }}
+        run: |
+          python - <<'PY'
+          import os, pathlib, sys
+
+          chat_id = os.environ['USER_CHAT_ID'].strip()
+          # Telegram accepts either a numeric id or an @username; reject anything
+          # else here rather than letting every send fail at runtime.
+          if not (chat_id.startswith('@') or chat_id.lstrip('-').isdigit()):
+              sys.exit('USER_CHAT_ID must be a numeric chat id or an @username')
+          for name in ('SPRINGER_API_KEY', 'BOT_API_KEY'):
+              if not os.environ[name].strip():
+                  sys.exit(f'{name} secret is empty')
+
+          pathlib.Path('config.py').write_text(
+              f'SPRINGER_API_KEY = {os.environ["SPRINGER_API_KEY"]!r}\n'
+              f'BOT_API_KEY = {os.environ["BOT_API_KEY"]!r}\n'
+              f'USER_CHAT_ID = {chat_id!r}\n')
+          PY
+
+      - name: Post
+        run: python SpringerNatureBot.py ${{ inputs.seed && '--seed' || '' }}
+
+      - name: Commit the posted-article store
+        run: |
+          # git status, not git diff: on the first run seen.json is untracked,
+          # and untracked paths never show up in a diff.
+          if [ -z "$(git status --porcelain -- seen.json)" ]; then
+            echo "nothing new posted"
+            exit 0
+          fi
+          git config user.name  'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add seen.json
+          git commit -m 'Record posted articles'
+          git push
