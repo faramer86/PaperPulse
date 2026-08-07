@@ -132,4 +132,9 @@ dmypy.json
 config.py
 .idea
 vbot
+# Claude / agent tooling artifacts (not needed by the GitHub cron workflow)
 .superpowers/
+docs/superpowers/
+.claude/
+CLAUDE.md
+.mcp.json
