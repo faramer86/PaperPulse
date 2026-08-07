@@ -46,19 +46,23 @@ jobs:
           python - <<'PY'
           import os, pathlib, sys
 
-          chat_id = os.environ['USER_CHAT_ID'].strip()
+          # Strip every value. A secret pasted with a trailing space or newline
+          # is invisible in the GitHub UI but makes Telegram reject the token
+          # with InvalidToken, and Springer reject the key with 401.
+          values = {name: os.environ[name].strip()
+                    for name in ('SPRINGER_API_KEY', 'BOT_API_KEY', 'USER_CHAT_ID')}
+
+          for name, value in values.items():
+              if not value:
+                  sys.exit(f'{name} secret is empty')
           # Telegram accepts either a numeric id or an @username; reject anything
           # else here rather than letting every send fail at runtime.
+          chat_id = values['USER_CHAT_ID']
           if not (chat_id.startswith('@') or chat_id.lstrip('-').isdigit()):
               sys.exit('USER_CHAT_ID must be a numeric chat id or an @username')
-          for name in ('SPRINGER_API_KEY', 'BOT_API_KEY'):
-              if not os.environ[name].strip():
-                  sys.exit(f'{name} secret is empty')
 
           pathlib.Path('config.py').write_text(
-              f'SPRINGER_API_KEY = {os.environ["SPRINGER_API_KEY"]!r}\n'
-              f'BOT_API_KEY = {os.environ["BOT_API_KEY"]!r}\n'
-              f'USER_CHAT_ID = {chat_id!r}\n')
+              ''.join(f'{name} = {value!r}\n' for name, value in values.items()))
           PY
 
       # inputs.seed goes through env rather than being interpolated into the
