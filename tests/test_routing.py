@@ -10,8 +10,8 @@ from datetime import date
 import httpx
 import pytest
 
-import SpringerNatureBot
-from SpringerNatureBot import channels_for, gather_articles, is_wanted, limit_for
+import paperpulse
+from paperpulse import channels_for, gather_articles, is_wanted, limit_for
 from Vars import JCHANNEL, JID
 
 TODAY = date(2026, 8, 7)
@@ -70,12 +70,12 @@ def test_the_main_channel_gets_a_higher_per_run_limit():
 
 
 def test_an_unlisted_channel_falls_back_to_the_default_limit():
-    assert limit_for('@NatureReviewsClinical') == SpringerNatureBot.MAX_POSTS_PER_CHANNEL
+    assert limit_for('@NatureReviewsClinical') == paperpulse.MAX_POSTS_PER_CHANNEL
 
 
 async def test_one_journal_fans_out_to_both_its_channels(monkeypatch):
-    monkeypatch.setattr(SpringerNatureBot, 'JID', {'Nature': 41586})
-    monkeypatch.setattr(SpringerNatureBot, 'JCHANNEL',
+    monkeypatch.setattr(paperpulse, 'JID', {'Nature': 41586})
+    monkeypatch.setattr(paperpulse, 'JCHANNEL',
                         {'Nature': ('@NatureMain', '@NatureReviewsLife')})
     records = [article(('OriginalPaper', 'Article')),
                article(('ReviewPaper', 'Review Article')),
@@ -93,8 +93,8 @@ async def test_one_journal_fans_out_to_both_its_channels(monkeypatch):
 
 
 async def test_a_single_channel_journal_still_works(monkeypatch):
-    monkeypatch.setattr(SpringerNatureBot, 'JID', {'NatureReviewsCancer': 41568})
-    monkeypatch.setattr(SpringerNatureBot, 'JCHANNEL',
+    monkeypatch.setattr(paperpulse, 'JID', {'NatureReviewsCancer': 41568})
+    monkeypatch.setattr(paperpulse, 'JCHANNEL',
                         {'NatureReviewsCancer': ('@NatureReviewsClinical',)})
     records = [article(('ReviewPaper', 'Review Article'))]
 

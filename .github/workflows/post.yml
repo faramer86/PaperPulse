@@ -83,9 +83,9 @@ jobs:
           SEED: ${{ inputs.seed }}
         run: |
           if [ "$SEED" = "true" ]; then
-            python SpringerNatureBot.py --seed
+            python paperpulse.py --seed
           else
-            python SpringerNatureBot.py
+            python paperpulse.py
           fi
 
       - name: Commit the posted-article store

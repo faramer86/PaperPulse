@@ -6,8 +6,8 @@ import httpx
 import pytest
 from telegram.error import BadRequest, TimedOut
 
-import SpringerNatureBot
-from SpringerNatureBot import USER_CHAT_ID, gather_articles, post_new_articles
+import paperpulse
+from paperpulse import USER_CHAT_ID, gather_articles, post_new_articles
 from store import FileSeenStore
 
 TODAY = date(2026, 8, 7)
@@ -38,8 +38,8 @@ def record(n, genre=('ReviewPaper', 'Review Article'), online='2026-08-05'):
 
 
 def one_journal(monkeypatch, records):
-    monkeypatch.setattr(SpringerNatureBot, 'JID', {'NatureReviewsCancer': 41568})
-    monkeypatch.setattr(SpringerNatureBot, 'JCHANNEL', {'NatureReviewsCancer': ('@channel',)})
+    monkeypatch.setattr(paperpulse, 'JID', {'NatureReviewsCancer': 41568})
+    monkeypatch.setattr(paperpulse, 'JCHANNEL', {'NatureReviewsCancer': ('@channel',)})
     return httpx.AsyncClient(transport=httpx.MockTransport(
         lambda request: httpx.Response(200, json={'records': records})))
 

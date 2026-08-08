@@ -7,7 +7,7 @@ so the key is scrubbed at the handler instead.
 
 import logging
 
-from SpringerNatureBot import RedactSecret
+from paperpulse import RedactSecret
 
 SECRET = 'b58d74681d7d68d660989066a0160881'
 URL = f'https://api.springernature.com/meta/v2/json?q=journalid:41568&api_key={SECRET}'

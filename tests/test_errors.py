@@ -2,7 +2,7 @@
 
 import httpx
 
-from SpringerNatureBot import get_current_articles
+from paperpulse import get_current_articles
 
 
 class RecordingBot:

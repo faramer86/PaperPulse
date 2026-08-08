@@ -9,8 +9,8 @@ remaining 23 journals.
 
 import httpx
 
-import SpringerNatureBot
-from SpringerNatureBot import gather_articles
+import paperpulse
+from paperpulse import gather_articles
 from datetime import date
 
 TODAY = date(2026, 8, 7)
@@ -39,14 +39,14 @@ async def test_a_throttled_sweep_stops_instead_of_hammering_every_journal(monkey
         await gather_articles(client, bot, TODAY)
 
     # One journal's worth of retries, not 24 journals' worth.
-    assert len(calls) == SpringerNatureBot.MAX_ATTEMPTS
+    assert len(calls) == paperpulse.MAX_ATTEMPTS
     assert len(bot.messages) == 1
 
 
 async def test_a_healthy_sweep_still_visits_every_journal(monkeypatch):
-    monkeypatch.setattr(SpringerNatureBot, 'JID',
+    monkeypatch.setattr(paperpulse, 'JID',
                         {'NatureReviewsCancer': 41568, 'NatureReviewsGenetics': 41576})
-    monkeypatch.setattr(SpringerNatureBot, 'JCHANNEL',
+    monkeypatch.setattr(paperpulse, 'JCHANNEL',
                         {'NatureReviewsCancer': '@a', 'NatureReviewsGenetics': '@b'})
     calls = []
 
@@ -62,9 +62,9 @@ async def test_a_healthy_sweep_still_visits_every_journal(monkeypatch):
 
 async def test_an_empty_journal_does_not_stop_the_sweep(monkeypatch):
     """404 means no articles, not a failure, so the sweep must continue."""
-    monkeypatch.setattr(SpringerNatureBot, 'JID',
+    monkeypatch.setattr(paperpulse, 'JID',
                         {'NatureReviewsCancer': 41568, 'NatureReviewsGenetics': 41576})
-    monkeypatch.setattr(SpringerNatureBot, 'JCHANNEL',
+    monkeypatch.setattr(paperpulse, 'JCHANNEL',
                         {'NatureReviewsCancer': '@a', 'NatureReviewsGenetics': '@b'})
     calls = []
 

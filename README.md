@@ -1,4 +1,4 @@
-# PaperPulse
+# Paper Pulse ✍️
 
 A Telegram bot that watches the Springer Nature API for new articles and posts
 them to topic-specific channels.

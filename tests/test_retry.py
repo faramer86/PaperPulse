@@ -7,7 +7,7 @@ whole run and sends the owner a false alarm.
 
 import httpx
 
-from SpringerNatureBot import MAX_ATTEMPTS, get_current_articles
+from paperpulse import MAX_ATTEMPTS, get_current_articles
 
 
 class RecordingBot:

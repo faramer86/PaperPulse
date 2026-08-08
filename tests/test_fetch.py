@@ -2,8 +2,8 @@
 
 import httpx
 
-import SpringerNatureBot
-from SpringerNatureBot import PAGE_SIZE, get_current_articles
+import paperpulse
+from paperpulse import PAGE_SIZE, get_current_articles
 
 
 class RecordingBot:
@@ -76,12 +76,12 @@ async def test_empty_result_set_costs_exactly_one_request():
 
 async def test_pagination_is_capped_so_a_stuck_api_cannot_loop_forever():
     calls = []
-    always_full = [records(PAGE_SIZE)] * (SpringerNatureBot.MAX_PAGES + 5)
+    always_full = [records(PAGE_SIZE)] * (paperpulse.MAX_PAGES + 5)
     async with client_returning(always_full, calls) as client:
         await get_current_articles(client, RecordingBot(), '2026-08-01', '2026-08-08', 41568,
                                    'NatureReviewsCancer')
 
-    assert len(calls) == SpringerNatureBot.MAX_PAGES
+    assert len(calls) == paperpulse.MAX_PAGES
 
 
 async def test_http_error_notifies_the_owner_and_reports_a_hard_failure():

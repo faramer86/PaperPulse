@@ -10,7 +10,7 @@ import logging
 import httpx
 from telegram.error import BadRequest
 
-from SpringerNatureBot import get_current_articles
+from paperpulse import get_current_articles
 
 
 class BrokenBot:

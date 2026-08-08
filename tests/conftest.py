@@ -19,6 +19,6 @@ import pytest  # noqa: E402
 @pytest.fixture(autouse=True)
 def no_retry_backoff(monkeypatch):
     """Exercise the retry logic without sleeping through it."""
-    import SpringerNatureBot
+    import paperpulse
 
-    monkeypatch.setattr(SpringerNatureBot, 'RETRY_BACKOFF', 0)
+    monkeypatch.setattr(paperpulse, 'RETRY_BACKOFF', 0)

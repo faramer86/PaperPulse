@@ -6,7 +6,7 @@ filtering happens in Python against the `genre` field every record carries.
 
 import pytest
 
-from SpringerNatureBot import build_query, is_wanted
+from paperpulse import build_query, is_wanted
 
 
 def test_query_uses_a_date_range_not_a_single_day():
