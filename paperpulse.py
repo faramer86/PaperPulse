@@ -20,6 +20,7 @@ import httpx
 from telegram.constants import ParseMode
 from telegram.error import BadRequest, TelegramError
 from telegram.ext import AIORateLimiter, ExtBot
+from telegram.request import HTTPXRequest
 
 from config import (
     SPRINGER_API_KEY,
@@ -52,6 +53,13 @@ EXCLUDED_ARTICLE_TYPES = frozenset({'Author Correction'})
 # indexes late. Dedup on DOI makes the overlap between runs harmless.
 LOOKBACK_WINDOW = timedelta(days=7)
 REQUEST_TIMEOUT = 30
+# Telegram fetches the article page and its og:image to build the link preview
+# before it answers, which routinely outlasts PTB's 5 second default. A timeout
+# is ambiguous -- the message may already have been delivered -- so raising
+# these is how duplicates are avoided, not the retry that follows one.
+CONNECT_TIMEOUT = 10
+READ_TIMEOUT = 30
+WRITE_TIMEOUT = 30
 # Springer caps meta/v2 at 25 records per request on the basic plan (100 on premium).
 PAGE_SIZE = 25
 # A journal never publishes this much in a day; the cap only stops a runaway loop
@@ -148,6 +156,17 @@ def is_wanted(article: dict, channel: str) -> bool:
     if channel in UNFILTERED_CHANNELS:
         return True
     return kind in REVIEW_ARTICLE_TYPES
+
+
+def build_bot() -> ExtBot:
+    """
+    Action: construct the Telegram bot with timeouts suited to link previews
+    :return: bot ready to use as an async context manager
+    """
+    request = HTTPXRequest(connect_timeout=CONNECT_TIMEOUT,
+                           read_timeout=READ_TIMEOUT,
+                           write_timeout=WRITE_TIMEOUT)
+    return ExtBot(BOT_API_KEY, request=request, rate_limiter=AIORateLimiter())
 
 
 async def notify_owner(bot: ExtBot, text: str) -> None:
@@ -335,7 +354,7 @@ async def run(store: SeenStore, today: date, limit: int | None, seed: bool) -> N
     :param seed: record everything currently in the window without posting it
     :return: None
     """
-    bot = ExtBot(BOT_API_KEY, rate_limiter=AIORateLimiter())
+    bot = build_bot()
     async with bot, httpx.AsyncClient(timeout=REQUEST_TIMEOUT,
                                       follow_redirects=True) as client:
         by_channel = await gather_articles(client, bot, today)
@@ -379,6 +398,10 @@ def main() -> None:
     )
     for handler in logging.getLogger().handlers:
         handler.addFilter(RedactSecret(SPRINGER_API_KEY, BOT_API_KEY))
+    # httpx logs every request at INFO, which is 27 lines a run and includes the
+    # routine 404s from journals that published nothing. The redaction filter
+    # above stays in place as the safety net if this is ever turned back up.
+    logging.getLogger('httpx').setLevel(logging.WARNING)
 
     args = parse_args()
     asyncio.run(run(store=FileSeenStore(args.seen),
